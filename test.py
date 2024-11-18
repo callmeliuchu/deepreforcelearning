@@ -5,7 +5,7 @@ import gym
 # 超参数
 H = 200  # 隐藏层神经元数量
 batch_size = 10  # 每多少集进行一次参数更新
-learning_rate = 1e-4
+learning_rate = 1e-3
 gamma = 0.99  # 折扣因子
 decay_rate = 0.99  # RMSProp 衰减因子
 resume = False  # 是否从以前的检查点恢复
@@ -63,7 +63,7 @@ def policy_backward(eph, epdlogp):
     return {'W1': dW1, 'W2': dW2}
 
 # 训练
-env = gym.make("Pong-v0", render_mode="human")
+env = gym.make("Pong-v4", render_mode="human")
 observation, _ = env.reset()
 prev_x = None  # 用于计算差分帧
 xs, hs, dlogps, drs = [], [], [], []
@@ -90,12 +90,12 @@ while True:
     dlogps.append(y - aprob)  # 梯度鼓励采取的动作
 
     # 环境步进，获取新状态
-    observation, reward, done, _, info = env.step(action)
+    observation, reward, terminated, truncated, info = env.step(action)  # 更新为新的返回值
     reward_sum += reward
 
     drs.append(reward)  # 记录奖励
 
-    if done:  # 一个回合结束
+    if terminated or truncated:  # 一个回合结束
         episode_number += 1
 
         # 堆叠输入、隐藏状态、动作梯度和奖励
@@ -121,6 +121,7 @@ while True:
                 g = grad_buffer[k]
                 rmsprop_cache[k] = decay_rate * rmsprop_cache[k] + (1 - decay_rate) * g ** 2
                 model[k] += learning_rate * g / (np.sqrt(rmsprop_cache[k]) + 1e-5)
+                print(model[k])
                 grad_buffer[k] = np.zeros_like(v)  # 重置 batch 梯度缓存
 
         # 记录
